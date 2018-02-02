@@ -107,7 +107,9 @@ What are the names of the input files?
 
 Name them once here and if they change you only need to change the code once. (e.g. if you get new data, start a different project using the same analysis code, etc.). 
 
-These files are too big for GitHub, you'll need to download them from Blackboard Learn or generate them with the simulate scripts in the code directory.
+These files are too big for GitHub, you'll need to download them from Blackboard Learn or generate them with the simulation scripts in the code directory.
+See the README file in the data directory for a few more instructions.
+
 ```{r}
 input_gex <- '../data/cont_var_sim_data.tsv'
 input_SNP <- '../data/plink.A-transpose.matrixQTL.geno'
