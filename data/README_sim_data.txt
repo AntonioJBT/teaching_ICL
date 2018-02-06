@@ -6,7 +6,7 @@ python simulate_cont_var.py --createDF --sample-size=10000 --var-size=10 -O cov_
 
 For genotype data, run plink then bash conversion script:
 plink --dummy 10000 1000 scalar-pheno
-bash plink_to_geno.sh plink plink.matrixQTL plink.A-transpose plink.A-transpose.matrixQTL.geno
+bash plink_to_geno.sh plink.matrixQTL plink.A-transpose plink.A-transpose.matrixQTL.geno
 
 plink needs to be installed separately.
 
