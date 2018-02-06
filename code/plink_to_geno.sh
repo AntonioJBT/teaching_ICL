@@ -2,8 +2,7 @@
 
 ##########
 # Run as eg:
-# bash plink_to_geno.sh plink_bfile= out_oxford_recode= traw_file= out_geno_file=
-# TO DO: move to ruffus although will need to run on Imperial as well.
+# bash plink_to_geno.sh plink_bfile out_oxford_recode traw_file out_geno_file
 
 # eQTL file processing script for genotype data
 # Antonio J Berlanga-Taylor
@@ -12,14 +11,6 @@
 # Input: quality controlled genotyping data after processing with plink
 
 # Outputs: genotype data in a format ready for MatrixEQTL
-
-# Inputs are:
-# QCd plink genotype file
-
-# e.g.
-# ln -s /ifs/projects/proj043/analysis.dir/genotypes.dir/P140343-Results_FinalReport_clean-individuals_and_SNPs* .
-# Run the 'bash ln eQTL xxx' script first in the working directory (contains the commands for ln links for files and scripts).
-# After this script run the 01_eQTL_xxx MatrixeQTL script for processing and matching covariates, gene expression and genotype files.
 ##########
 
 
@@ -33,13 +24,13 @@ set -o nounset
 
 # Set variables:
 plink_bfile=$1
-#P140343-Results_FinalReport_clean_SNPs_autosome
+#FinalReport_clean_SNPs_autosome
 out_oxford_recode=$2
-#P140343-Results_FinalReport_clean_SNPs_autosome.matrixQTL
+#FinalReport_clean_SNPs_autosome.matrixQTL
 traw_file=$3
-#P140343-Results_FinalReport_clean_SNPs_autosome.A-transpose (which plink will convert to xxx.traw)
+#FinalReport_clean_SNPs_autosome.A-transpose (which plink will convert to xxx.traw)
 out_geno_file=$4
-#P140343-Results_FinalReport_clean_SNPs_autosome.A-transpose.matrixQTL.geno
+#FinalReport_clean_SNPs_autosome.A-transpose.matrixQTL.geno
 ##########
 
 ##########
