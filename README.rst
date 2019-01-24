@@ -1,4 +1,4 @@
 Teaching at ICL
 ################
 
-Repository for the molecular and genetic epidemiology module data analysis practicals
+Repository for the data analysis practicals (QTL) for the molecular and genetic epidemiology module.
