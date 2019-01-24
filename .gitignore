@@ -8,8 +8,8 @@
 
 # This directory:
 /my_results/*
-/data/plink*
-/data/*tsv
+#/data/plink*
+#/data/*tsv
 
 # Vim:
 *~

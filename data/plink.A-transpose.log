@@ -1,0 +1,23 @@
+PLINK v1.90b4 64-bit (20 Mar 2017)
+Options in effect:
+  --bfile plink
+  --out plink.A-transpose
+  --recode A-transpose
+
+Hostname: dyn1214-57.wlan.ic.ac.uk
+Working directory: /Users/antoniob/Documents/MRC_PHE_Imperial/imperial_teaching/molecular_epi_module_2018/practicals_review_data_week_3_ioanna/data_analysis_practical_week_3/teaching_ICL/data
+Start time: Fri Feb  2 12:57:18 2018
+
+Random number seed: 1517576238
+16384 MB RAM detected; reserving 8192 MB for main workspace.
+1000 variants loaded from .bim file.
+10000 people (0 males, 10000 females) loaded from .fam.
+10000 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 10000 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+1000 variants and 10000 people pass filters and QC.
+Phenotype data is quantitative.
+--recode A-transpose to plink.A-transpose.traw ... done.
+
+End time: Fri Feb  2 12:57:18 2018
