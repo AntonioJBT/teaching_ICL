@@ -1,0 +1,432 @@
+---
+title: "Data analysis practical week 2 - part 2"
+subtitle: "Molecular and Genetic Epidemiology"
+author: "Antonio J Berlanga-Taylor, Ioanna Tzoulaki and Raha Pazoki"
+date: "January 2019"
+output:
+  html_document:
+    df_print: paged
+  github_document: default
+  html_notebook: default
+  pdf_document: default
+source: Rmd
+editor_options:
+  chunk_output_type: inline
+---
+
+
+
+-----
+
+###Questions
+- How can we analyse genetic, molecular and phenotypic data when we have thousands of measurements per individual?
+
+###Objectives
+- Understand the concept of a QTL
+- Run a QTL analysis with simulated data using MatrixEQTL
+- Understand the output and interpret the results
+
+-----
+
+##Preliminaries
+
+1. Get the files and setup a working directory:
+
+  a. Clone or download scripts and data from [Antonio's GitHub repository](https://github.com/AntonioJBT/teaching_ICL):
+    - Download the code and data folders directly using bash (if you're on a Mac, Linux or have e.g. [gitforwindows](http://gitforwindows.org/)):
+
+```
+pwd
+cd ~/Desktop/
+wget https://github.com/AntonioJBT/teaching_ICL/archive/master.zip
+unzip master.zip
+cd teaching_ICL-master
+mkdir my_results
+cd my_results
+```
+
+
+  b. Alternatively:
+    - Open a browser and go to the GitHub repository, look for the "Clone or download" link on the right hand side and press "Download ZIP"
+    - Go to where you saved the folder, unzip it, create a folder called 'my_results' and enter it
+
+2. Open RStudio and this script:
+  - You can save this file with a different name if you want
+  - We'll be executing, adding and modifying code along the way
+  - If you have the .nb.html version, download the .Rmd file first and save that one with a different name
+
+3. Start the exercises :-D
+
+###Notebook setup
+
+We'll first need to specify in R where we want to run the analysis from. If you followed the instructions above you can set your working directory to the same location. This is much easier to do manually from the R console. Copy and paste the following:
+
+    setwd('~/Desktop/teaching_ICL-master/my_results/')
+    getwd()
+
+####Saving results
+
+Normally we would prefer to keep code, data and results in separate directories. Here we're using R Notebook and the knitr package to run commands, create output and produce a nice looking report file which contains code, text and results together. This R notebook let us have it all in one place, which can sometimes be very useful, particularly for exploratory analysis.
+
+We'll setup a separate path to a 'results' directory for plots that we might want to save independently though. We also already have a separate 'data' folder where we keep our data sets.
+
+In a standard R script we would simply use commands such as setwd(), source(), etc. An important caveat here is that, by default, knitr uses the same directory as your .Rmd file to find any files that are necessary to run the code (e.g. any data files) and, if any output is generated, it’ll be saved in that directory as well. This is set independently for each code chunk.
+
+To make it easier we can add an output path to make sure we save to the directory we want:
+
+```{r}
+path_results <- '../my_results/'
+```
+
+####Load packages
+
+You may need to install them first, e.g.:
+
+    source("https://bioconductor.org/biocLite.R")
+    biocLite()
+    biocLite('package')
+
+```{r, include = TRUE, echo = TRUE}
+library(knitr)
+library(plyr) # check the tidyverse packages if you're not familiar with them yet
+library(MatrixEQTL) # run regression analysis efficiently for millions to billions of tests
+```
+
+-----
+
+###Brief introduction to the analysis practical
+
+In the previous exercise we analysed candidate markers using regression association tests. Here, we'll perform the same type of analysis for thousands of genetic variants and molecular phenotypes.
+
+###Data
+
+The data we'll be using consists of (badly) simulated sets. We have only simulated a few characteristics of the data but it is not an attempt to characterise genetic or molecular markers in a serious way. The data contains single nucleotide polymorphisms and molecular data (such as gene expression or metabolite data points).
+
+We can assume that the data has already been quality controlled and all the pre-processing steps have been carried out.
+
+-----
+
+##Analysis
+###Load and inspect the data
+
+What are the names of the input files?
+
+Name them once here and if they change you only need to change the code once. (e.g. if you get new data, start a different project using the same analysis code, etc.). 
+```{r}
+input_gex <- '../data/GE_ext.txt'
+input_SNP <- '../data/SNP_ext.txt'
+input_covariates <- '../data/Covariates_ext.txt'
+```
+
+When say covariates in this context, what are we actually referring to?
+
+
+###SNP and gene positions
+
+We'll be running gene expression data so we can also load annotations for SNP location, probe annotation and probe location:
+```{r}
+input_snpsPos <- '../data/snpsloc.txt'
+input_genePos <- '../data/geneloc.txt'
+```
+
+-----
+
+####Output files
+
+We'll be saving some results, we can define the names of the files here:
+```{r}
+output_file_name <- sprintf('%s/QTL_analysis.mxqtl.tsv', path_results)
+output_file_name
+output_file_name.cis <- sprintf('%s/QTL_analysis.mxqtl.cis.tsv', path_results)
+output_file_name.cis
+```
+
+-----
+
+
+Let's look at the molecular data:
+```{r}
+gex_data <- read.csv(input_gex, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
+gex_data[1:5, 1:5]
+dim(gex_data)
+head(gex_data)
+tail(gex_data)
+str(gex_data, list.len = 10)
+class(gex_data)
+colnames(gex_data)
+rownames(gex_data)
+```
+
+Head, tail and somewhere else:
+
+We used head() and tail() here and the files are relatively small. What if we had thousands of rows and we wanted to check a few results in the middle, just for sanity?
+
+How would you search for a few lines at random in your file?
+
+Here's one example of how we can do this using a nested function:
+```{r}
+gex_data[sample(nrow(gex_data), 5), ]
+```
+
+-----
+
+Let's plot a few of the variables just to check that our dataset is as we expect:
+```{r}
+boxplot(gex_data[, 2:6])
+boxplot(gex_data[, (ncol(gex_data)-5):ncol(gex_data)])
+```
+
+What are we actually plotting here? What are the columns and what are the rows?
+
+What if we want to see how one (or more) of the measured molecules looks across all individuals?
+
+This is a very quick look at the data, just for sanity, as we should have already made some pretty plots during the QC stage. 
+```{r}
+boxplot(t(gex_data[, -1]))
+```
+
+-----
+
+Let's look at the genetic data:
+```{r}
+SNP_data <- read.csv(input_SNP, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
+SNP_data[1:5, 1:5]
+head(SNP_data)
+tail(SNP_data)
+str(SNP_data, list.len = 10)
+dim(SNP_data)
+class(SNP_data)
+colnames(SNP_data)
+rownames(SNP_data)
+```
+
+
+Let's plot a few of the variables just to check quickly that our dataset is as we expect:
+```{r}
+boxplot(SNP_data[, 2:6])
+boxplot(SNP_data[, (ncol(SNP_data)-5):ncol(SNP_data)])
+```
+
+What is this about?
+
+SNP data in this file looks more like count data (number of minor alleles at that particular genomic location).
+
+Simple counts or a table might be better here:
+```{r}
+as.data.frame(apply(SNP_data, 1, function(x) count(x))[1]) # rows
+```
+
+-----
+
+Let's look at the covariates data:
+```{r}
+cov_data <- read.csv(input_covariates, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
+cov_data[1:5, 1:5]
+dim(cov_data)
+head(cov_data)
+tail(cov_data)
+str(cov_data, list.len = 10)
+class(cov_data)
+colnames(cov_data)
+rownames(cov_data)
+```
+
+It looks like we only have one variable here, gender:
+```{r}
+count(t(cov_data[, -1])[, 1])
+```
+The values for gender have been coded as:
+
+0 = male
+
+1 = female
+
+-----
+
+Remember we also have some annotations for distance definitions (cis v. trans).
+Why distance? Does it matter? Distance to what?
+```{r}
+snpsPos_data <- read.csv(input_snpsPos, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+head(snpsPos_data)
+dim(snpsPos_data)
+
+probePos_data <- read.csv(input_genePos, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+head(probePos_data)
+dim(probePos_data)
+```
+
+-----
+
+###Basic sanity
+Let's double check that the order between files matches, often this is essential as silent errors can happen if they don't.
+```{r}
+identical(colnames(gex_data), colnames(SNP_data))
+identical(colnames(gex_data), colnames(cov_data))
+identical(rownames(gex_data), rownames(cov_data))
+```
+
+Which ones should be true? Which one (row or column) do we care about here?
+
+-----
+
+A bit on programming:
+
+If this was an R script (instead of a notebook), how would you get the programme to stop if a certain condition wasn't fulfilled? i.e. identify an error, report it and stop?
+
+Check the R function stopifnot(). We won't use it here but if you start using R for some programming it might become handy:
+```{r}
+help("stopifnot")
+stopifnot(identical(rownames(gex_data), rownames(SNP_data)))
+# stopifnot(identical(rownames(gex_data), colnames(SNP_data)))
+```
+
+
+###Running QTL analysis with MatrixEQTL
+
+[MatrixEQTL is an R package](http://www.bios.unc.edu/research/genomic_software/Matrix_eQTL/) ([and its paper](https://academic.oup.com/bioinformatics/article/28/10/1353/213326)) that can handle billions of comparisons efficiently. It runs regression tests on SNP data and a continuous variable such as gene expression or metabolite abundance levels. See the tutorial online and the original paper to understand more about the use of linear algebra and what each of the parameters means. Some of the data that we are using are from their examples.
+
+We'll set up the parameters that we need for MatrixEQTL here:
+```{r}
+useModel <- modelLINEAR # modelANOVA or modelLINEAR or modelLINEAR_CROSS
+
+# The p-value threshold determines which gene-SNP associations are saved in the output file. 
+# Note that for larger datasets the threshold should be lower. Setting the threshold to a high value for a large dataset may cause excessively large output files.
+pvOutputThreshold <- 1e-5
+pvOutputThreshold.cis <- 1e-3
+
+# Determine the distance between genes and SNPs to define cis and trans:
+cisDist <- 1e3
+
+# Define the covariance matrix for the error term. 
+# Consider an error covariance matrix if necessary (correlated variables or errors)
+# This parameter is rarely used. If the covariance matrix is a multiple of identity, set it to numeric().
+errorCovariance <- numeric()
+```
+
+###Regression analysis: effect of genetic variation on molecular changes
+
+In the previous sections we loaded the data to inspect it. We'll do so again here using MatrixEQTL. We could have saved that earlier step though if we had already explored our data and were now running the QTL directly. We could also have used the functions that MatrixEQTL provides instead and explored it here.
+```{r}
+snps = SlicedData$new();
+snps$fileDelimiter = "\t";      # the TAB character
+snps$fileOmitCharacters = "NA"; # denote missing values;
+snps$fileSkipRows = 1;          # one row of column labels
+snps$fileSkipColumns = 1;       # one column of row labels
+snps$fileSliceSize = 2000;      # read file in pieces of 2,000 rows
+snps$LoadFile(input_SNP)
+snps
+
+gene = SlicedData$new();
+gene$fileDelimiter = "\t";      # the TAB character
+gene$fileOmitCharacters = "NA"; # denote missing values;
+gene$fileSkipRows = 1;          # one row of column labels
+gene$fileSkipColumns = 1;       # one column of row labels
+gene$fileSliceSize = 2000;      # read file in pieces of 2,000 rows
+gene$LoadFile(input_gex);
+gene
+
+cvrt = SlicedData$new();
+cvrt$fileDelimiter = "\t";      # the TAB character
+cvrt$fileOmitCharacters = "NA"; # denote missing values; This is from the plink encoding.
+cvrt$fileSkipRows = 1;          # one row of column labels
+cvrt$fileSkipColumns = 1;       # one column of row labels
+cvrt$fileSliceSize = 2000;      # read file in pieces of 2,000 rows
+cvrt$LoadFile(input_covariates);
+cvrt
+
+# Check files:
+str(cvrt)
+str(snps)
+str(gene)
+
+dim(cvrt)
+dim(snps)
+dim(gene)
+```
+
+-----
+
+Call MatrixEQTL's main function:
+```{r}
+results_mxqtl <- Matrix_eQTL_main(
+  snps = snps,
+  gene = gene,
+  cvrt = cvrt,
+  output_file_name = output_file_name,
+  output_file_name.cis = output_file_name.cis,
+  useModel = useModel,
+  errorCovariance = errorCovariance,
+  verbose = TRUE,
+  pvalue.hist = 'qqplot',
+  min.pv.by.genesnp = FALSE,
+  noFDRsaveMemory = FALSE,
+  pvOutputThreshold = pvOutputThreshold,
+  pvOutputThreshold.cis = pvOutputThreshold.cis,
+  snpspos = snpsPos_data,
+  genepos = probePos_data,
+  cisDist = cisDist)
+```
+
+-----
+
+We can inspect the results now. Each significant gene-SNP association is recorded in a separate line in the output file and in the returned object results_mxqtl. In case of cis/trans eQTL analysis described below, two output files are produced, one with cis-eQTLs, another only with trans. Every record contains a SNP name, a transcript name, estimate of the effect size, t- or F-statistic, p-value, and FDR.
+```{r}
+show(results_mxqtl$all$eqtls) # The output will be NULL if we specified a cis distance
+head(results_mxqtl$all$eqtls)
+plot(results_mxqtl)
+head(results_mxqtl$cis$eqtls)
+nrow(results_mxqtl$cis$eqtls)
+head(results_mxqtl$cis$ntests)
+head(results_mxqtl$trans$eqtls)
+nrow(results_mxqtl$trans$eqtls)
+head(results_mxqtl$trans$ntests)
+```
+
+-----
+
+###Discussion of results
+
+- What is the number of total, cis and trans QTLs?
+- What is the qqplot telling us?
+- Open the regression results file:
+    + What are the lowest raw p-values reported? The highest?
+    + What about the beta coefficients?
+    + What is the FDR column telling us?
+    + Are there any interesting SNP-probe pairs to report?
+
+### Next steps
+
+What could we do next? Annotation, downstream analysis, plots for publication, follow-up of significant results.
+
+###The end
+
+Questions? Corrections? Comments?
+
+-----
+
+##A few references
+
+R Markdown and Notebook:
+
+- [R Markdown](http://rmarkdown.rstudio.com)
+- [R Markdown lesson](http://rmarkdown.rstudio.com/lesson-1.html)
+- [Overview of R Notebooks at RStudio](http://rmarkdown.rstudio.com/r_notebooks.html#overview)
+- [R Markdown Cheat Sheet](https://www.rstudio.com/wp-content/uploads/2016/03/rmarkdown-cheatsheet-2.0.pdf)
+- [A tutorial I came across](https://rstudio-pubs-static.s3.amazonaws.com/256225_63ebef4029dd40ef8e3679f6cf200a5a.html#)
+
+Markdown language:
+
+- [The official CommonMark spec](http://spec.commonmark.org/0.28/)
+- [Markdown tutorial](http://commonmark.org/help/tutorial/)
+- [Quick reference sheet](http://commonmark.org/help/)
+
+QTLs:
+
+- [Quantitative Trait Locus (QTL) Analysis | Learn Science at Scitable](https://www.nature.com/scitable/topicpage/quantitative-trait-locus-qtl-analysis-53904)
+- [The role of regulatory variation in complex traits and disease | Nature Reviews Genetics](https://www.nature.com/articles/nrg3891)
+
+Programming with R best practice:
+
+- [Software Carpentry suggestions for best practices with R](http://swcarpentry.github.io/r-novice-inflammation/06-best-practices-R/)
+
+We use Software Carpentry materials for some of the examples and code. Please take a look at their [webpage](https://software-carpentry.org/) and [lessons](https://software-carpentry.org/lessons/) if you are interested.

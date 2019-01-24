@@ -1,0 +1,319 @@
+---
+title: "Data analysis practical week 2 - part 1"
+subtitle: "Molecular and Genetic Epidemiology"
+author: "Antonio J Berlanga-Taylor, Ioanna Tzoulaki and Raha Pazoki"
+date: 'January 2019'
+output:
+  html_document:
+    df_print: paged
+  github_document: default
+  html_notebook: default
+  pdf_document: default
+source: Rmd
+editor_options:
+  chunk_output_type: inline
+---
+
+-----
+
+###Questions
+- How can we analyse genetic, molecular and phenotypic data?
+
+###Objectives
+- Understand the concept of a QTL
+- Use R and R Markdown to run a simple regression analysis with genetic, molecular and phenotype data
+- Run unadjusted and adjusted regression models between a SNP and molecular phenotype
+- Look up some of the results in the frequently used online databases
+
+-----
+
+##Preliminaries
+
+1. Get the files and setup a working directory:
+
+  a. Clone or download scripts and data from [Antonio's GitHub repository](https://github.com/AntonioJBT/teaching_ICL):
+    - Download the code and data folders directly using bash (if you're on a Mac, Linux or have e.g. [gitforwindows](http://gitforwindows.org/)):
+
+```
+pwd
+cd ~/Desktop/
+wget https://github.com/AntonioJBT/teaching_ICL/archive/master.zip
+unzip master.zip
+cd teaching_ICL-master
+mkdir my_results
+cd my_results
+```
+
+  b. Alternatively:
+    - Open a browser and go to the GitHub repository, look for the "Clone or download" link on the right hand side and press "Download ZIP"
+    - Go to where you saved the folder, unzip it, create a folder called 'my_results' and enter it
+
+2. Open RStudio and this script:
+  - You can save this file with a different name if you want
+  - We'll be executing, adding and modifying code along the way
+  - If you have the .nb.html version, download the .Rmd file first and save that one with a different name
+
+3. Start the exercises :-D
+
+###Notebook setup
+
+We'll first need to specify in R where we want to run the analysis from. If you followed the instructions above you can set your working directory to the same location. This is much easier to do manually from the R console. Copy and paste the following:
+
+    setwd('~/Desktop/teaching_ICL-master/my_results/')
+    getwd()
+
+
+####Saving results
+
+Normally we would prefer to keep code, data and results in separate directories. Here we're using R Notebook and the knitr package to run commands, create output and produce a nice looking report file which contains code, text and results together. This R notebook let us have it all in one place, which can sometimes be very useful, particularly for exploratory analysis.
+
+We'll setup a separate path to a 'results' directory for plots that we might want to save independently though. We also already have a separate 'data' folder where we keep our data sets.
+
+In a standard R script we would simply use commands such as setwd(), source(), etc. An important caveat here is that, by default, knitr uses the same directory as your .Rmd file to find any files that are necessary to run the code (e.g. any data files) and, if any output is generated, it’ll be saved in that directory as well. This is set independently for each code chunk.
+
+To make it easier we can add an output path to make sure we save to the directory we want:
+
+```{r}
+path_results <- '../my_results/'
+```
+
+####Load packages
+
+You may need to install them first, e.g.:
+
+    source("https://bioconductor.org/biocLite.R")
+    biocLite()
+    biocLite('package')
+
+```{r, include = TRUE, echo = TRUE}
+library(knitr)
+library(ggplot2) # pretty plots
+library(car) # Run correlations and plots for lm
+library(gvlma) # Compare models and fit
+library(plyr) # check the tidyverse packages if you're not familiar with them yet
+# library(cowplot) # make it easier to create multi-panel figures
+```
+
+-----
+
+###Brief introduction to the analysis practical
+
+What is a quantitative trait locus analysis?
+
+QTL analysis is a statistical method which relates genotypes with phenotypes in order to try to understand the genomic basis of complex traits (see [Kearsey, 1998](https://academic.oup.com/jxb/article/49/327/1619/442590)).
+
+For discussion:
+
+- What are phenotypes?
+
+###Data
+
+The data we'll be using consists of simulated (made-up!) sets. Some of the variables are simulated, others based on real data and some are made up (based on published papers or known allele frequencies though). The data contains single nucleotide polymorphisms, molecular data (such as gene expression or metabolites) and phenotype data (such as age, BMI, disease status, etc.).
+
+We can assume that they have already been quality controlled and all the pre-processing steps have been carried out.
+
+
+-----
+
+##Analysis
+
+###Load and inspect the data
+
+What are the names of the input files?
+
+Name them once here and if they change you only need to change the code once. (e.g. if you get new data, start a different project using the same analysis code, etc.)
+```{r}
+file_name <- '../data/week_2_practical_data_1.txt'
+```
+
+Read the file and inspect the data frame:
+```{r}
+all_data <- read.csv(file_name, sep = '\t', header = TRUE, stringsAsFactors = F)
+dim(all_data)
+head(all_data)
+tail(all_data)
+str(all_data)
+class(all_data)
+head(rownames(all_data))
+sapply(all_data, class)
+colnames(all_data)
+```
+
+Let's plot a few of the variables just to check quickly that our dataset is as we expect:
+```{r}
+boxplot(all_data$vitamin_d)
+boxplot(all_data$ln_IL10)
+boxplot(all_data$transcript_IL10)
+summary(all_data[, c('vitamin_d', 'transcript_IL10', 'ln_IL10')])
+scatterplot(all_data$transcript_IL10, all_data$ln_IL10)
+scatterplot(all_data$vitamin_d, all_data$transcript_IL10)
+count(all_data$rs7041)
+count(all_data$rs6921438)
+```
+Questions:
+
+- Try to interpret the figures to get an understanding of what we are looking at.
+- What might be the underlying hypotheses?
+- What are the 'rs' variables?
+- Are the counts of these variables as we'd expect them to be? How can we know?
+
+-----
+
+###Genetic effect on gene expression, metabolite and protein levels
+
+Here we have two genetic variants which have been previously studied. One has been associated by GWAS to circulating [vitamin D levels (rs7041)](http://www.thelancet.com/journals/lancet/article/PIIS0140-6736(10)60588-0/fulltext) and another to [IL-10 levels (rs6921438)](http://www.cell.com/ajhg/pdfExtended/S0002-9297(16)30485-2).
+
+As you have seen already from the exploratory analysis, the data also contains circulating blood levels of vitamin D (25OHD), and interleukin 10 (IL-10) mRNA and protein levels.
+
+Let's plot some of the variables of interest. Feel free to change variables and run other tests. Here is the first example for a SNP - mRNA association:
+```{r}
+# Setup the main variables to avoid repeating them below:
+names(all_data)
+probe_col <- 12
+snp_col <- 14
+probe <- colnames(all_data)[probe_col]
+snp <- colnames(all_data)[snp_col] 
+# Labels:
+plot_title <- sprintf('Effect of %s on levels of %s', snp, probe)
+# Plot unadjusted values:
+p1 <- ggplot(all_data, aes(as.factor(all_data[, snp]), all_data[, probe])) + 
+  geom_jitter(colour='darkgrey', position=position_jitter(width=0.25)) + 
+  geom_boxplot(outlier.size=0, alpha=0.6, fill='grey') + 
+  ylab('Average expression levels') + 
+  xlab('Genotype') + ggtitle(plot_title) + theme_minimal() +
+  theme(text = element_text(size = 8))
+p1
+ggsave(filename = sprintf('%s/%s.svg', path_results, plot_title))
+```
+
+We can add the protein levels:
+```{r}
+probe_col <- 11
+probe <- colnames(all_data)[probe_col]  
+plot_title <- sprintf('Effect of %s on levels of %s', snp, probe)
+p2 <- ggplot(all_data, aes(as.factor(all_data[, snp]), all_data[, probe])) + 
+  geom_jitter(colour='darkgrey', position=position_jitter(width=0.25)) + 
+  geom_boxplot(outlier.size=0, alpha=0.6, fill='grey') + 
+  ylab('Average expression levels') + 
+  xlab('Genotype') + ggtitle(plot_title) + theme_minimal() +
+  theme(text = element_text(size = 8))
+p2
+ggsave(filename = sprintf('%s/%s.svg', path_results, plot_title))
+```
+
+###Regression analyses
+
+We'll run unadjusted and adjusted models next to understand how these variables relate to each other.
+
+####Simple regression
+
+We'll setup the formula and run the uncorrected regression model first:
+```{r}
+pass_formula <- as.formula(sprintf('%s ~ %s', probe, snp))
+pass_formula
+```
+
+```{r}
+lm_fit <- lm(formula = pass_formula, data = all_data)
+summary.lm(lm_fit)
+```
+Great, it looks like we have some output. What does it look like? Does this SNP alter the expression of the transcript?
+
+-----
+
+####Assumptions
+
+What about the assumptions we've made in our statistical method? We should test these systematically:
+```{r}
+gvmodel <- gvlma(lm_fit)
+summary(gvmodel)
+```
+What if we were testing genome-wide? Millions of SNPs vs. thousands of expressed transcripts (mRNA)? What is the prevailing model in genetics?
+
+-----
+
+####Corrected regression model
+
+Let's run a new regression analysis but now we'll adjust for some possible confounders.
+
+Which would you use? Here we've run everything we have here. Is this correct?
+
+What should we have done in the initial exploratory analysis?
+```{r}
+names(all_data)
+# Get variables we want to adjust for:
+confounders <- c(2:10, snp_col, probe_col)
+all_data_corr <- all_data[, confounders]
+dim(all_data_corr)
+dim(all_data)
+head(all_data_corr)
+```
+
+Let's setup the regression formula and run the analysis:
+```{r}
+pass_formula <- as.formula(sprintf('%s ~ %s + .', probe, snp)) # correct for everything in the dataframe
+pass_formula
+# Run regression:
+lm_fit_corr <- lm(formula = pass_formula, data = all_data_corr)
+summary.lm(lm_fit_corr)
+# Test assumptions:
+gvmodel <- gvlma(lm_fit_corr)
+summary(gvmodel)
+```
+
+How do these results compare to the unadjusted regression?
+
+-----
+
+####Model comparison
+
+We have two models now, we could compare them:
+```{r}
+AIC(lm_fit, lm_fit_corr)
+```
+
+What are the results of the model comparison?
+
+-----
+
+###Next steps
+
+What could we do next? How can we find out more about our genetic variants and molecular phenotypes of interest?
+
+What if we had a very large dataset? How whould this analysis be different? Statistically? Computationally?
+
+Here is one example of a [software tool](http://www.bios.unc.edu/research/genomic_software/Matrix_eQTL/) ([and its paper](https://academic.oup.com/bioinformatics/article/28/10/1353/213326)) that can handle billions of comparisons efficiently.
+
+###End
+
+Questions? Corrections? Comments?
+
+-----
+
+
+##A few references
+
+R Markdown and Notebook:
+
+- [R Markdown](http://rmarkdown.rstudio.com)
+- [R Markdown lesson](http://rmarkdown.rstudio.com/lesson-1.html)
+- [Overview of R Notebooks at RStudio](http://rmarkdown.rstudio.com/r_notebooks.html#overview)
+- [R Markdown Cheat Sheet](https://www.rstudio.com/wp-content/uploads/2016/03/rmarkdown-cheatsheet-2.0.pdf)
+- [A tutorial I came across](https://rstudio-pubs-static.s3.amazonaws.com/256225_63ebef4029dd40ef8e3679f6cf200a5a.html#)
+
+Markdown language:
+
+- [The official CommonMark spec](http://spec.commonmark.org/0.28/)
+- [Markdown tutorial](http://commonmark.org/help/tutorial/)
+- [Quick reference sheet](http://commonmark.org/help/)
+
+QTLs:
+
+- [Quantitative Trait Locus (QTL) Analysis | Learn Science at Scitable](https://www.nature.com/scitable/topicpage/quantitative-trait-locus-qtl-analysis-53904)
+- [The role of regulatory variation in complex traits and disease | Nature Reviews Genetics](https://www.nature.com/articles/nrg3891)
+
+Programming with R best practice:
+
+- [Software Carpentry suggestions for best practices with R](http://swcarpentry.github.io/r-novice-inflammation/06-best-practices-R/)
+
+We use Software Carpentry materials for some of the examples and code. Please take a look at their [webpage](https://software-carpentry.org/) and [lessons](https://software-carpentry.org/lessons/) if you are interested.
