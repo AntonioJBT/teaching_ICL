@@ -76,6 +76,18 @@ To make it easier we can add an output path to make sure we save to the director
 path_results <- '../my_results/'
 ```
 
+####A note on memory in R > v3.5 in macOSX
+
+If you errors related to "vector memory exhausted" you can try the following solution:
+[R on MacOS Error: vector memory exhausted (limit reached?) - Stack Overflow](https://stackoverflow.com/questions/51295402/r-on-macos-error-vector-memory-exhausted-limit-reached)
+
+You can find more information here:
+- [R: Get Environment Variables](https://stat.ethz.ch/R-manual/R-devel/library/base/html/Sys.getenv.html)
+- [R: Set or Unset Environment Variables](https://stat.ethz.ch/R-manual/R-devel/library/base/html/Sys.setenv.html)
+- [R: Memory Available for Data Storage](https://stat.ethz.ch/R-manual/R-devel/library/base/html/Memory.html)
+
+Remember to choose something that is suitable for the physical and virtual memory on your computer. Also, you may want to modify or delete the ".Renviron" file when you're done (unless you are happy keeping the new memory settings), in particular if you have saved it in your home location (i.e. in "~/", which in my case is "/Users/antoniob").
+
 ####Load packages
 
 You may need to install them first, e.g.:
@@ -116,9 +128,9 @@ Small files are on GitHub but you can create larger ones if wanted with the simu
 See the README file in the data directory for a few more instructions.
 
 ```{r}
-input_gex <- '../data/100_cont_var_sim_data.tsv'
-input_SNP <- '../data/100_plink.A-transpose.matrixQTL.geno'
-input_covariates <- '../data/100_cov_sim_data.tsv'
+input_gex <- '../data/cont_var_sim_data.tsv'
+input_SNP <- '../data/plink.A-transpose.matrixQTL.geno'
+input_covariates <- '../data/cov_sim_data.tsv'
 ```
 
 When say covariates in this context, what are we actually referring to?
