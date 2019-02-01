@@ -10,6 +10,8 @@
 /my_results/*
 #/data/plink*
 #/data/*tsv
+data/cont_var_sim_data.tsv
+data/cov_sim_data.tsv
 
 # Vim:
 *~
