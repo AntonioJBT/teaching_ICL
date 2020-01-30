@@ -1,8 +1,8 @@
 ---
 title: "Data analysis practical week 2 - part 1"
 subtitle: "Molecular and Genetic Epidemiology"
-author: "Antonio J Berlanga-Taylor, Ioanna Tzoulaki and Raha Pazoki"
-date: 'January 2019'
+author: "Antonio J Berlanga-Taylor and Ioanna Tzoulaki"
+date: 'January 2020'
 output:
   html_document:
     df_print: paged
