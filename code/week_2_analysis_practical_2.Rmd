@@ -1,8 +1,8 @@
 ---
-title: "Data analysis practical week 2 - part 2"
+title: "Data analysis practical QTLs - part 2"
 subtitle: "Molecular and Genetic Epidemiology"
-author: "Antonio J Berlanga-Taylor and Ioanna Tzoulaki"
-date: "January 2020"
+author: "Antonio J Berlanga-Taylor"
+date: "January 2021"
 output:
   html_document:
     df_print: paged
@@ -204,7 +204,7 @@ rownames(SNP_data)
 Let's plot a few of the variables just to check quickly that our dataset is as we expect:
 ```{r}
 boxplot(SNP_data[, 2:6])
-boxplot(SNP_data[, (ncol(SNP_data)-5):ncol(SNP_data)])
+boxplot(SNP_data[, (ncol(SNP_data) - 5):ncol(SNP_data)])
 ```
 
 What is this about?

@@ -1,8 +1,8 @@
 ---
-title: "Data analysis practical week 2 - part 1"
+title: "Data analysis practical QTLs - part 1"
 subtitle: "Molecular and Genetic Epidemiology"
-author: "Antonio J Berlanga-Taylor and Ioanna Tzoulaki"
-date: 'January 2020'
+author: "Antonio J Berlanga-Taylor"
+date: 'January 2021'
 output:
   html_document:
     df_print: paged
@@ -92,6 +92,7 @@ library(car) # Run correlations and plots for lm
 library(gvlma) # Compare models and fit
 library(plyr) # check the tidyverse packages if you're not familiar with them yet
 # library(cowplot) # make it easier to create multi-panel figures
+library(svglite) # if you want to save plots as svg with ggplot2
 ```
 
 -----
@@ -177,8 +178,8 @@ snp <- colnames(all_data)[snp_col]
 plot_title <- sprintf('Effect of %s on levels of %s', snp, probe)
 # Plot unadjusted values:
 p1 <- ggplot(all_data, aes(as.factor(all_data[, snp]), all_data[, probe])) + 
-  geom_jitter(colour='darkgrey', position=position_jitter(width=0.25)) + 
-  geom_boxplot(outlier.size=0, alpha=0.6, fill='grey') + 
+  geom_jitter(colour = 'darkgrey', position = position_jitter(width = 0.25)) + 
+  geom_boxplot(outlier.size = 0, alpha = 0.6, fill = 'grey') + 
   ylab('Average expression levels') + 
   xlab('Genotype') + ggtitle(plot_title) + theme_minimal() +
   theme(text = element_text(size = 8))
@@ -192,8 +193,8 @@ probe_col <- 11
 probe <- colnames(all_data)[probe_col]  
 plot_title <- sprintf('Effect of %s on levels of %s', snp, probe)
 p2 <- ggplot(all_data, aes(as.factor(all_data[, snp]), all_data[, probe])) + 
-  geom_jitter(colour='darkgrey', position=position_jitter(width=0.25)) + 
-  geom_boxplot(outlier.size=0, alpha=0.6, fill='grey') + 
+  geom_jitter(colour = 'darkgrey', position = position_jitter(width = 0.25)) + 
+  geom_boxplot(outlier.size = 0, alpha = 0.6, fill = 'grey') + 
   ylab('Average expression levels') + 
   xlab('Genotype') + ggtitle(plot_title) + theme_minimal() +
   theme(text = element_text(size = 8))
