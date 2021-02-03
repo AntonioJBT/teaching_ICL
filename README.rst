@@ -8,9 +8,8 @@ To render the html files e.g. week_2_analysis_practical_1.html go to:
 
 https://htmlpreview.github.io/?https://github.com/AntonioJBT/teaching_ICL/blob/master/code/week_2_analysis_practical_1.html
 
-Download data for practical 2b from:
-
-https://tinyurl.com/tu25pwj
+i.e. append the link to:
+https://htmlpreview.github.io/?
 
 To simulate large files see the README in data/
 
